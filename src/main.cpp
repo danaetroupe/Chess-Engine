@@ -7,6 +7,9 @@
 
 // Program Files
 #include "Board.h"
+#include "UserInput.h"
+
+#include <iostream>
 
 int main()
 {
@@ -24,11 +27,24 @@ int main()
 	// Initalize Game Board
 	Board board;
 	board.Show(SIZE);
-
+	//board.RunTests();
+	board.Show(SIZE);
 	// game loop
+
+	// Initalize User Input
+	UserInput input;
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
-		
+		char* moves = input.GetMoves();
+		bool valid = board.MovePiece(moves, moves + 2);
+		if (valid) 
+		{
+			board.Show(SIZE);
+		}
+		else
+		{
+			std::cout << "Move was not valid. Please try again. " << std::endl;
+		}
 	}
 
 	// cleanup

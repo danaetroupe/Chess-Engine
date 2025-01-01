@@ -3,37 +3,61 @@
 #include <cstdint>
 #include <string>
 
+enum Type { PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING };
+enum CColor { WWHITE, BBLACK };
+struct Piece {
+	Type type;
+	CColor color;
+	Piece(Type t, CColor c) {
+		type = t;
+		color = c;
+	}
+};
+typedef uint64_t bitboard;
+
 class Board
 {
-	uint64_t whitePawns = 65280;
-	uint64_t whiteRooks = 129;
-	uint64_t whiteKnights = 66;
-	uint64_t whiteBishops = 36;
-	uint64_t whiteQueens = 8;
-	uint64_t whiteKing = 16;
+	bitboard whitePawns = 65280; // A1 is 1
+	bitboard whiteRooks = 129;
+	bitboard whiteKnights = 66;
+	bitboard whiteBishops = 36;
+	bitboard whiteQueens = 8;
+	bitboard whiteKing = 16;
 
-	uint64_t blackPawns = 71776119061217280;
-	uint64_t blackRooks = 9295429630892703744;
-	uint64_t blackKnights = 4755801206503243776;
-	uint64_t blackBishops = 2594073385365405696;
-	uint64_t blackQueens = 576460752303423488;
-	uint64_t blackKing = 1152921504606846976;
+	bitboard blackPawns = 71776119061217280;
+	bitboard blackRooks = 9295429630892703744;
+	bitboard blackKnights = 4755801206503243776;
+	bitboard blackBishops = 2594073385365405696;
+	bitboard blackQueens = 576460752303423488;
+	bitboard blackKing = 1152921504606846976;
 
-	uint64_t allWhite;
-	uint64_t allBlack;
-	uint64_t allPieces;
+	bitboard allWhite;
+	bitboard allBlack;
+	bitboard allPieces;
 
 	// Rendering
 	Texture2D texture;
-	
 
 public:
 	Board();
 	~Board() {};
 
+	bitboard PositionToBitboard(char[2]);
+	bool MovePiece(char[2], char[2]);
+	void UpdateBoard(bitboard, bitboard);
+	bitboard* GetIndividalBoard(bitboard);
+
+	// Rendering functions
 	void Show(int);
 	void Hide();
+	void DrawPiece(bitboard, int, int, int, std::string);
+
 	Rectangle GetTarget(int, float);
-	void DrawPiece(uint64_t, int, int, int, std::string);
+
+	bool MovePawn(bitboard, bitboard, CColor);
+	bool MoveKnight(bitboard, bitboard);
+
+	// Testing Function
+	void RunTests();
 };
 
