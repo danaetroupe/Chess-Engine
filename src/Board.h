@@ -3,16 +3,6 @@
 #include <cstdint>
 #include <string>
 
-enum Type { PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING };
-enum CColor { WWHITE, BBLACK };
-struct Piece {
-	Type type;
-	CColor color;
-	Piece(Type t, CColor c) {
-		type = t;
-		color = c;
-	}
-};
 typedef uint64_t bitboard;
 
 class Board
@@ -42,22 +32,25 @@ public:
 	Board();
 	~Board() {};
 
-	bitboard PositionToBitboard(char[2]);
 	bool MovePiece(char[2], char[2]);
-	void UpdateBoard(bitboard, bitboard);
-	bitboard* GetIndividalBoard(bitboard);
-
-	// Rendering functions
+	
 	void Show(int);
 	void Hide();
-	void DrawPiece(bitboard, int, int, int, std::string);
-
-	Rectangle GetTarget(int, float);
-
-	bool MovePawn(bitboard, bitboard, CColor);
-	bool MoveKnight(bitboard, bitboard);
 
 	// Testing Function
 	void RunTests();
+	void ShowBitboard(bitboard);
+
+private:
+	bitboard PositionToBitboard(char[2]);
+	bitboard* GetIndividalBoard(bitboard);
+
+	Rectangle GetTarget(int, float);
+
+	bool MovePawn(bitboard, bitboard);
+	bool MoveKnight(bitboard, bitboard);
+
+	void UpdateBoard(bitboard, bitboard);
+	void DrawPiece(bitboard, int, int, int, std::string);
 };
 

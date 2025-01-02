@@ -1,6 +1,10 @@
-// Danae Troupe
-// Chess Program
-// Started: Sunday, December 29, 2024
+/***************************************\
+========================================
+			Danae Troupe
+		    Chess Program
+	Started: Sunday, December 29, 2024
+========================================
+\***************************************/
 
 #include "raylib.h"
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
@@ -13,7 +17,7 @@
 
 int main()
 {
-	int SIZE = 400;
+	int SIZE = 450;
 
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -27,14 +31,14 @@ int main()
 	// Initalize Game Board
 	Board board;
 	board.Show(SIZE);
-	//board.RunTests();
-	board.Show(SIZE);
+	board.ShowBitboard(65280);
 	// game loop
 
 	// Initalize User Input
 	UserInput input;
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
+		SetWindowFocused();
 		char* moves = input.GetMoves();
 		bool valid = board.MovePiece(moves, moves + 2);
 		if (valid) 
