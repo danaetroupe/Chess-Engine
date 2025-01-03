@@ -12,6 +12,26 @@ Board::Board()
 	allBlack = blackPawns | blackRooks | blackKnights | blackBishops | blackQueens | blackKing;;
 	allPieces = allWhite | allBlack;
 
+	// Fill out rows
+	for (bitboard i = 0; i < 8; i++)
+	{
+		bitboard value = 0;
+		for (bitboard j = 0; j < 8; j++) {
+			value += (bitboard)1 << ((bitboard)8 * i) << j;
+		}
+		ranks[i] = value;
+	}
+
+	// Fill out columns
+	for (bitboard i = 0; i < 8; i++)
+	{
+		bitboard value = 0;
+		for (bitboard j = 0; j < 8; j++) {
+			value += (bitboard)1 << i << ((bitboard)8 * j);
+		}
+		files[i] = value;
+	}
+
 	texture = LoadTexture("board.png");
 };
 
@@ -148,8 +168,8 @@ bool Board::MovePiece(char p1[2 ], char p2[2]) {
 	else if (startPos & (whiteBishops | blackBishops)) {
 		return true;
 	}
-	else if (startPos & (whiteKnights | blackBishops)) {
-		return true;
+	else if (startPos & (whiteKnights | blackKnights)) {
+		return MoveKnight(startPos, endPos);
 	}
 	else if (startPos & (whiteQueens | blackQueens)) {
 		return true;
@@ -232,6 +252,50 @@ bool Board::MovePawn(bitboard start, bitboard end) {
 	return false;
 }
 
+/***************************************** Move Knight *****************************************/
+bool Board::MoveKnight(bitboard startPos, bitboard endPos)
+{
+	// function not completeley implemented
+	std::vector<bitboard> validMoves;
+	int rank = getRank(startPos);
+	int file = getFile(startPos);
+	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
+
+	if (rank <= 5 && file >= 1 && !(startPos << 15 & color)) {
+		validMoves.push_back(startPos << 15);
+	}
+	if (rank <= 5 && file <= 6 && !(startPos << 17 & color)) {
+		validMoves.push_back(startPos << 17);
+	}
+	if (rank <= 6 && file <= 5 && !(startPos << 10 & color)) {
+		validMoves.push_back(startPos << 10);
+	}
+	if (rank <= 6 && file >= 2 && !(startPos << 6 & color)) {
+		validMoves.push_back(startPos << 6);
+	}
+	if (rank >= 1 && file >= 2 && !(startPos >> 10 & color)) {
+		validMoves.push_back(startPos >> 10);
+	}
+	if (rank >= 2 && file >= 1 && !(startPos >> 17 & color)) {
+		validMoves.push_back(startPos >> 17);
+	}
+	if (rank >= 2 && file <= 6 && !(startPos >> 15 & color)) {
+		validMoves.push_back(startPos >> 15);
+	}
+	if (rank <= 1 && file <= 5 && !(startPos >> 6 & color)) {
+		validMoves.push_back(startPos >> 6);
+	}
+
+	// Check for endpos
+	for (bitboard move : validMoves) {
+		if (move == endPos) {
+			UpdateBoard(startPos, endPos);
+			return true;
+		}
+	}
+	return false;
+}
+
 /***************************************** Update Board *****************************************/
 void Board::UpdateBoard(bitboard startPos , bitboard endPos)
 {
@@ -260,13 +324,15 @@ void Board::UpdateBoard(bitboard startPos , bitboard endPos)
 		allBlack = allBlack ^ startPos ^ endPos;
 	}
 	allPieces = allBlack | allWhite;
+	ShowBitboard(whiteKnights);
 }
 
 /***************** Determine the individual bitboard that the piece resides on *****************/
 bitboard* Board::GetIndividalBoard(bitboard piece)
 {
 	bitboard* boards[]{ &whitePawns, &blackPawns, 
-		&whiteRooks, &blackRooks, 
+		&whiteRooks, &blackRooks,
+		&whiteKnights, &blackKnights,
 		&whiteBishops, &blackBishops, 
 		&whiteQueens, &blackQueens, 
 		&whiteKing, &blackKing };
@@ -275,15 +341,6 @@ bitboard* Board::GetIndividalBoard(bitboard piece)
 	{
 		if (*board & piece) { return board; }
 	}
-}
-
-/***************************************** Move Knight *****************************************/
-bool Board::MoveKnight(bitboard startPos, bitboard endPos)
-{
-	// function not completeley implemented
-	std::vector<bitboard> validMoves;
-	int numbers[]{ 6, 8, 15, 17 };
-	return true;
 }
 
 /***************************************** Run Tests *****************************************/
@@ -311,7 +368,7 @@ void Board::RunTests()
 	std::cout << "A2->A4: " << MovePiece("A2", "A4") << "   Expecting: 1" << std::endl;
 }
 
-/***************************************** Show Bitboard *****************************************/
+/******************************************* Show Bitboard *******************************************/
 void Board::ShowBitboard(bitboard board)
 {
 	for (int i = 8; i > 0; i--)
@@ -331,4 +388,24 @@ void Board::ShowBitboard(bitboard board)
 		std::cout << ' ' << char('A' + i);
 	}
 	std::cout << std::endl;
+}
+
+/********************************************** Get Rank **********************************************/
+int Board::getRank(bitboard piece)
+{
+	for (int i = 0; i < 8; i++)
+	{
+		if (ranks[i] & piece) { return i; }
+	}
+	return 0;
+}
+
+/********************************************** Get File **********************************************/
+int Board::getFile(bitboard piece)
+{
+	for (int i = 0; i < 8; i++)
+	{
+		if (files[i] & piece) { return i; }
+	}
+	return 0;
 }

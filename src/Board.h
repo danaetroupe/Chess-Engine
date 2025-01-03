@@ -7,6 +7,7 @@ typedef uint64_t bitboard;
 
 class Board
 {
+	// Starting Positions
 	bitboard whitePawns = 65280; // A1 is 1
 	bitboard whiteRooks = 129;
 	bitboard whiteKnights = 66;
@@ -24,6 +25,9 @@ class Board
 	bitboard allWhite;
 	bitboard allBlack;
 	bitboard allPieces;
+
+	bitboard ranks[8]; // Horizontal rows 
+	bitboard files[8]; // Vertical columns
 
 	// Rendering
 	Texture2D texture;
@@ -52,5 +56,8 @@ private:
 
 	void UpdateBoard(bitboard, bitboard);
 	void DrawPiece(bitboard, int, int, int, std::string);
+
+	int getRank(bitboard); // row
+	int getFile(bitboard); // column
 };
 

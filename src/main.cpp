@@ -15,6 +15,7 @@
 
 #include <iostream>
 
+/***************************************** Main Function *****************************************/
 int main()
 {
 	int SIZE = 450;
@@ -31,7 +32,6 @@ int main()
 	// Initalize Game Board
 	Board board;
 	board.Show(SIZE);
-	board.ShowBitboard(65280);
 	// game loop
 
 	// Initalize User Input
