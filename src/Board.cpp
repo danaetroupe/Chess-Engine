@@ -175,7 +175,7 @@ bool Board::MovePiece(char p1[2 ], char p2[2]) {
 		return true;
 	}
 	else if (startPos & (whiteKing | blackKing)) {
-		return true;
+		return MoveKing(startPos, endPos);
 	}
 	else {
 		std::cout << "[ERROR] Type at " << p1 << " not recognized." << std::endl;
@@ -253,16 +253,41 @@ bool Board::MovePawn(bitboard start, bitboard end) {
 }
 
 /***************************************** Move Knight *****************************************/
-bool Board::MoveKnight(bitboard startPos, bitboard endPos)
+bool Board::MoveKing(bitboard startPos, bitboard endPos)
 {
-	// function not completeley implemented
 	std::vector<bitboard> validMoves;
 	int rank = getRank(startPos);
 	int file = getFile(startPos);
 	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
 
-	if (rank <= 5 && file >= 1 && !(startPos << 15 & color)) {
-		validMoves.push_back(startPos << 15);
+	bitboard numbers[]{ 1, 7, 8, 9 };
+	for (bitboard number : numbers)
+	{
+		// TODO: Check that king is not in check
+		if (!(startPos << number & color)) { validMoves.push_back(startPos << number); }
+		if (!(startPos >> number & color)) { validMoves.push_back(startPos >> number); }
+	}
+
+	// Check for endpos
+	for (bitboard move : validMoves) {
+		if (move == endPos) {
+			UpdateBoard(startPos, endPos);
+			return true;
+		}
+	}
+	return false;
+}
+
+/***************************************** Move Knight *****************************************/
+bool Board::MoveKnight(bitboard startPos, bitboard endPos)
+{
+	std::vector<bitboard> validMoves;
+	int rank = getRank(startPos);
+	int file = getFile(startPos);
+	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
+
+	if (rank <= 6 && file >= 1 && !(startPos << 15 & color)) {
+		validMoves.push_back(startPos << 7);
 	}
 	if (rank <= 5 && file <= 6 && !(startPos << 17 & color)) {
 		validMoves.push_back(startPos << 17);

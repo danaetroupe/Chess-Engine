@@ -53,6 +53,7 @@ private:
 
 	bool MovePawn(bitboard, bitboard);
 	bool MoveKnight(bitboard, bitboard);
+	bool MoveKing(bitboard, bitboard);
 
 	void UpdateBoard(bitboard, bitboard);
 	void DrawPiece(bitboard, int, int, int, std::string);
