@@ -286,8 +286,8 @@ bool Board::MoveKnight(bitboard startPos, bitboard endPos)
 	int file = getFile(startPos);
 	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
 
-	if (rank <= 6 && file >= 1 && !(startPos << 15 & color)) {
-		validMoves.push_back(startPos << 7);
+	if (rank <= 5 && file >= 1 && !(startPos << 1 5 & color)) {
+		validMoves.push_back(startPos << 15);
 	}
 	if (rank <= 5 && file <= 6 && !(startPos << 17 & color)) {
 		validMoves.push_back(startPos << 17);
@@ -350,6 +350,9 @@ void Board::UpdateBoard(bitboard startPos , bitboard endPos)
 	}
 	allPieces = allBlack | allWhite;
 	ShowBitboard(whiteKnights);
+
+	// Update attack boards
+
 }
 
 /***************** Determine the individual bitboard that the piece resides on *****************/
