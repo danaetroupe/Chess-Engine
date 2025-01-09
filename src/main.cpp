@@ -29,6 +29,12 @@ int main()
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("assets");
 
+	// General Variables
+	Vector2 mousePosition = { 0 };
+	Vector2 windowPosition = { 500, 200 };
+	Vector2 panOffset = mousePosition;
+	bool dragWindow = false;
+
 	// Initalize Game Board
 	Board board;
 	board.Show(SIZE);
@@ -38,6 +44,27 @@ int main()
 	UserInput input;
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
+		mousePosition = GetMousePosition();
+
+		if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow)
+		{
+			if (CheckCollisionPointRec(mousePosition, { 0, 0, (float) SIZE, 20 }))
+			{
+				dragWindow = true;
+				panOffset = mousePosition;
+			}
+		}
+
+		if (dragWindow)
+		{
+			windowPosition.x += (mousePosition.x - panOffset.x);
+			windowPosition.y += (mousePosition.y - panOffset.y);
+
+			SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
+
+			if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) dragWindow = false;
+		}
+
 		SetWindowFocused();
 		char* moves = input.GetMoves();
 		bool valid = board.MovePiece(moves, moves + 2);

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #include "Board.h"
 
@@ -119,7 +120,6 @@ Rectangle Board::GetTarget(int position, float increment)
 	int x = position % 8;
 	char column = 'A' + x;
 	char row = '1' + y;
-	std::cout << "Pawn on " << column << row << std::endl;
 	return { x * increment, (7 - y) * increment, increment, increment }; // use 7 because <8
 }
 
@@ -163,16 +163,16 @@ bool Board::MovePiece(char p1[2 ], char p2[2]) {
 		return MovePawn(startPos, endPos);
 	}
 	else if (startPos & (whiteRooks | blackRooks)) {
-		return true;
+		return MoveRook(startPos, endPos);
 	}
 	else if (startPos & (whiteBishops | blackBishops)) {
-		return true;
+		return MoveBishop(startPos, endPos);
 	}
 	else if (startPos & (whiteKnights | blackKnights)) {
 		return MoveKnight(startPos, endPos);
 	}
 	else if (startPos & (whiteQueens | blackQueens)) {
-		return true;
+		return MoveQueen(startPos, endPos);
 	}
 	else if (startPos & (whiteKing | blackKing)) {
 		return MoveKing(startPos, endPos);
@@ -286,7 +286,7 @@ bool Board::MoveKnight(bitboard startPos, bitboard endPos)
 	int file = getFile(startPos);
 	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
 
-	if (rank <= 5 && file >= 1 && !(startPos << 1 5 & color)) {
+	if (rank <= 5 && file >= 1 && !(startPos << 15 & color)) {
 		validMoves.push_back(startPos << 15);
 	}
 	if (rank <= 5 && file <= 6 && !(startPos << 17 & color)) {
@@ -318,6 +318,49 @@ bool Board::MoveKnight(bitboard startPos, bitboard endPos)
 			return true;
 		}
 	}
+	return false;
+}
+
+/***************************************** Move Bishop *****************************************/
+bool Board::MoveBishop(bitboard startPos, bitboard endPos)
+{
+	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
+	
+	int startRank = getRank(startPos);
+	int startFile = getFile(startPos);
+	int endRank = getRank(endPos);
+	int endFile = getFile(endPos);
+
+	if (abs(startRank - endRank) == abs(startFile - endFile) && !(endPos & color)) // Check to make sure movement is the same
+	{
+		// Check there are no pieces blocking
+		int diff = abs(startRank - endRank);
+		int rankIncrement = (endRank - startRank) / abs(startRank - endRank);
+		int fileIncrement = (endFile - startFile) / abs(startFile - endFile);
+
+		for (int i = 1; i < diff; i++)
+		{
+			char position[]{ 'A' + startFile + (i * fileIncrement), '1' + startRank + (i * rankIncrement) };
+			if (PositionToBitboard(position) & allPieces) { return false; }
+		}
+		UpdateBoard(startPos, endPos);
+		return true;
+	}
+
+	return false;
+}
+
+/***************************************** Move Rook *****************************************/
+bool Board::MoveRook(bitboard startPos, bitboard endPos)
+{
+	// Not yet implemented
+	return false;
+}
+
+/***************************************** Move Queen *****************************************/
+bool Board::MoveQueen(bitboard startPos, bitboard endPos)
+{
+	// Not yet implemented
 	return false;
 }
 
@@ -425,7 +468,7 @@ int Board::getRank(bitboard piece)
 	{
 		if (ranks[i] & piece) { return i; }
 	}
-	return 0;
+	return -1;
 }
 
 /********************************************** Get File **********************************************/
@@ -435,5 +478,5 @@ int Board::getFile(bitboard piece)
 	{
 		if (files[i] & piece) { return i; }
 	}
-	return 0;
+	return -1;
 }
