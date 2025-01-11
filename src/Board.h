@@ -22,8 +22,8 @@ class Board
 	bitboard blackQueens = 576460752303423488;
 	bitboard blackKing = 1152921504606846976;
 
-	bitboard whiteAttacking;
-	bitboard blackAttacking;
+	//bitboard whiteAttacking;
+	//bitboard blackAttacking;
 
 	bitboard allWhite;
 	bitboard allBlack;
@@ -32,6 +32,15 @@ class Board
 	bitboard ranks[8]; // Horizontal rows 
 	bitboard files[8]; // Vertical columns
 
+	bool whiteKingMoved = false;
+	bool blackKingMoved = false;
+	bool whiteARookMoved = false;
+	bool blackARookMoved = false;
+	bool whiteHRookMoved = false;
+	bool blackHRookMoved = false;
+
+	bool whiteTurn = true;
+
 	// Rendering
 	Texture2D texture;
 
@@ -39,7 +48,7 @@ public:
 	Board();
 	~Board() {};
 
-	bool MovePiece(char[2], char[2]);
+	bool MovePiece(char[3], char[3]);
 	
 	void Show(int);
 	void Hide();
@@ -49,7 +58,7 @@ public:
 	void ShowBitboard(bitboard);
 
 private:
-	bitboard PositionToBitboard(char[2]);
+	bitboard PositionToBitboard(char[3]);
 	bitboard* GetIndividalBoard(bitboard);
 
 	Rectangle GetTarget(int, float);

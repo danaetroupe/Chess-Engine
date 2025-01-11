@@ -6,7 +6,7 @@
 char* UserInput::GetMoves()
 {
 	bool valid = false;
-	char moves[4];
+	char moves[6];
 	std::string input;
 	while (!valid) 
 	{
@@ -19,6 +19,7 @@ char* UserInput::GetMoves()
 	}
 	moves[0] = input[0];
 	moves[1] = input[1];
+	moves[2] = '\0';
 	valid = false;
 	while (!valid)
 	{
@@ -29,7 +30,8 @@ char* UserInput::GetMoves()
 		valid = valid && (input[0] <= 'h' && input[0] >= 'a') || (input[0] <= 'H' && input[0] >= 'A');
 		valid = valid && (input[1] <= '8' && input[1] >= '1');
 	}
-	moves[2] = input[0];
-	moves[3] = input[1];
+	moves[3] = input[0];
+	moves[4] = input[1];
+	moves[5] = '\0';
 	return moves;
 }

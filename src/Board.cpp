@@ -124,7 +124,7 @@ Rectangle Board::GetTarget(int position, float increment)
 }
 
 /*********************************** Determine Bitboard From Position ***********************************/
-bitboard Board::PositionToBitboard(char position[2])
+bitboard Board::PositionToBitboard(char position[3])
 {
 	char column = position[0]; // expecting: A, B, C...
 	char row = position[1]; // expecting : 1, 2, 3...
@@ -146,7 +146,7 @@ bitboard Board::PositionToBitboard(char position[2])
 }
 
 /***************************************** Move Piece *****************************************/
-bool Board::MovePiece(char p1[2 ], char p2[2]) {
+bool Board::MovePiece(char p1[3], char p2[3]) {
 	bitboard startPos = PositionToBitboard(p1);
 	bitboard endPos = PositionToBitboard(p2);
 
@@ -155,32 +155,48 @@ bool Board::MovePiece(char p1[2 ], char p2[2]) {
 		return false; // TODO: Validate in user input (don't allow user to select square without a piece!)
 	}
 
+	// Make sure correct color is moving
+	if ((whiteTurn && (startPos & allBlack)) || (!whiteTurn && (startPos & allWhite)))
+	{
+		return false;
+	}
+
 	// Check for color collision
 	if ((startPos & allWhite && endPos & allWhite) || (startPos & allBlack && endPos & allBlack)) { return false; }
 	
+	// Check for lack of movement 
+	if (startPos == endPos) { return false; }
+
+	bool valid = false;
 	if (startPos & (whitePawns | blackPawns)) 
 	{
-		return MovePawn(startPos, endPos);
+		valid = MovePawn(startPos, endPos);
 	}
 	else if (startPos & (whiteRooks | blackRooks)) {
-		return MoveRook(startPos, endPos);
+		valid = MoveRook(startPos, endPos);
 	}
 	else if (startPos & (whiteBishops | blackBishops)) {
-		return MoveBishop(startPos, endPos);
+		valid = MoveBishop(startPos, endPos);
 	}
 	else if (startPos & (whiteKnights | blackKnights)) {
-		return MoveKnight(startPos, endPos);
+		valid = MoveKnight(startPos, endPos);
 	}
 	else if (startPos & (whiteQueens | blackQueens)) {
-		return MoveQueen(startPos, endPos);
+		valid = MoveQueen(startPos, endPos);
 	}
 	else if (startPos & (whiteKing | blackKing)) {
-		return MoveKing(startPos, endPos);
+		valid = MoveKing(startPos, endPos);
 	}
 	else {
 		std::cout << "[ERROR] Type at " << p1 << " not recognized." << std::endl;
 	}
 
+	if (valid)
+	{
+		UpdateBoard(startPos, endPos);
+		whiteTurn = !whiteTurn;
+	}
+	return valid;
 }
 
 /***************************************** Move Pawn *****************************************/
@@ -245,10 +261,9 @@ bool Board::MovePawn(bitboard start, bitboard end) {
 					blackQueens = blackQueens ^ start;
 				}
 			}
-			UpdateBoard(start, end);
 			return true; 
 		}
-	}
+ 	}
 	return false;
 }
 
@@ -271,7 +286,6 @@ bool Board::MoveKing(bitboard startPos, bitboard endPos)
 	// Check for endpos
 	for (bitboard move : validMoves) {
 		if (move == endPos) {
-			UpdateBoard(startPos, endPos);
 			return true;
 		}
 	}
@@ -286,35 +300,34 @@ bool Board::MoveKnight(bitboard startPos, bitboard endPos)
 	int file = getFile(startPos);
 	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
 
-	if (rank <= 5 && file >= 1 && !(startPos << 15 & color)) {
+	if (rank < 6 && file > 0 && !(startPos << 15 & color)) {
 		validMoves.push_back(startPos << 15);
 	}
-	if (rank <= 5 && file <= 6 && !(startPos << 17 & color)) {
+	if (rank < 6 && file < 7 && !(startPos << 17 & color)) {
 		validMoves.push_back(startPos << 17);
 	}
-	if (rank <= 6 && file <= 5 && !(startPos << 10 & color)) {
+	if (rank < 7 && file < 6 && !(startPos << 10 & color)) {
 		validMoves.push_back(startPos << 10);
 	}
-	if (rank <= 6 && file >= 2 && !(startPos << 6 & color)) {
+	if (rank < 7 && file > 1 && !(startPos << 6 & color)) {
 		validMoves.push_back(startPos << 6);
 	}
-	if (rank >= 1 && file >= 2 && !(startPos >> 10 & color)) {
+	if (rank > 0 && file > 1 && !(startPos >> 10 & color)) {
 		validMoves.push_back(startPos >> 10);
 	}
-	if (rank >= 2 && file >= 1 && !(startPos >> 17 & color)) {
+	if (rank > 1 && file > 0 && !(startPos >> 17 & color)) {
 		validMoves.push_back(startPos >> 17);
 	}
-	if (rank >= 2 && file <= 6 && !(startPos >> 15 & color)) {
+	if (rank > 1 && file < 7 && !(startPos >> 15 & color)) {
 		validMoves.push_back(startPos >> 15);
 	}
-	if (rank <= 1 && file <= 5 && !(startPos >> 6 & color)) {
+	if (rank > 0 && file < 6 && !(startPos >> 6 & color)) {
 		validMoves.push_back(startPos >> 6);
 	}
 
 	// Check for endpos
 	for (bitboard move : validMoves) {
 		if (move == endPos) {
-			UpdateBoard(startPos, endPos);
 			return true;
 		}
 	}
@@ -343,7 +356,6 @@ bool Board::MoveBishop(bitboard startPos, bitboard endPos)
 			char position[]{ 'A' + startFile + (i * fileIncrement), '1' + startRank + (i * rankIncrement) };
 			if (PositionToBitboard(position) & allPieces) { return false; }
 		}
-		UpdateBoard(startPos, endPos);
 		return true;
 	}
 
@@ -353,15 +365,44 @@ bool Board::MoveBishop(bitboard startPos, bitboard endPos)
 /***************************************** Move Rook *****************************************/
 bool Board::MoveRook(bitboard startPos, bitboard endPos)
 {
-	// Not yet implemented
+	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
+
+	int startRank = getRank(startPos);
+	int startFile = getFile(startPos);
+	int endRank = getRank(endPos);
+	int endFile = getFile(endPos);
+
+	if (startRank == endRank && startFile != endFile) // A-H
+	{
+		int diff = abs(startFile - endFile);
+		int fileIncrement = (startFile - endFile) / abs(startFile - endFile);
+
+		for (int i = 1; i < diff; i++)
+		{
+			char position[]{ 'A' + startFile + (i * fileIncrement), '1' + endRank};
+			if (PositionToBitboard(position) & allPieces) { return false; }
+		}
+		return true;
+	}
+	else if (startFile == endFile && startRank != endRank) // 1-8
+	{
+		int diff = abs(startRank - endRank);
+		int rankIncrement = (startRank - endRank) / abs(startRank - endRank);
+
+		for (int i = 1; i < diff; i++)
+		{
+			char position[]{ 'A' + endFile, '1' + startRank + (i*rankIncrement)};
+			if (PositionToBitboard(position) & allPieces) { return false; }
+		}
+		return true;
+	}
 	return false;
 }
 
 /***************************************** Move Queen *****************************************/
 bool Board::MoveQueen(bitboard startPos, bitboard endPos)
 {
-	// Not yet implemented
-	return false;
+	return (MoveBishop(startPos, endPos) || MoveRook(startPos, endPos));
 }
 
 /***************************************** Update Board *****************************************/
@@ -392,7 +433,6 @@ void Board::UpdateBoard(bitboard startPos , bitboard endPos)
 		allBlack = allBlack ^ startPos ^ endPos;
 	}
 	allPieces = allBlack | allWhite;
-	ShowBitboard(whiteKnights);
 
 	// Update attack boards
 
@@ -412,6 +452,7 @@ bitboard* Board::GetIndividalBoard(bitboard piece)
 	{
 		if (*board & piece) { return board; }
 	}
+	return 0;
 }
 
 /***************************************** Run Tests *****************************************/

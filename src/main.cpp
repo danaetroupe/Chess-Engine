@@ -65,9 +65,8 @@ int main()
 			if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) dragWindow = false;
 		}
 
-		SetWindowFocused();
 		char* moves = input.GetMoves();
-		bool valid = board.MovePiece(moves, moves + 2);
+		bool valid = board.MovePiece(moves, moves + 3);
 		if (valid) 
 		{
 			board.Show(SIZE);
