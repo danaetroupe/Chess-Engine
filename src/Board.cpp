@@ -33,8 +33,24 @@ Board::Board()
 		files[i] = value;
 	}
 
+	// Load textures
 	texture = LoadTexture("board.png");
+	pieces = LoadTexture("pieces.png");
+
+	// Initalize audio
+	InitAudioDevice();
+	moveSound = LoadSound("audio/move-self.mp3");
+	captureSound = LoadSound("audio/capture.mp3");
+	illegalSound = LoadSound("audio/illegal.mp3");
+	gameEndSound = LoadSound("audio/game-end.mp3");
 };
+
+Board::~Board()
+{
+	CloseAudioDevice();
+	UnloadTexture(texture);
+	UnloadTexture(pieces);
+}
 
 /**************************************** Show Board ****************************************/
 void Board::Show(int SIZE, bitboard grabPiece = NULL)
@@ -228,9 +244,16 @@ bool Board::MovePiece(bitboard startPos, bitboard endPos) {
 
 	if (valid)
 	{
+		if (endPos & allPieces) { PlaySound(captureSound); }
+		else { PlaySound(moveSound); }
 		UpdateBoard(startPos, endPos);
 		whiteTurn = !whiteTurn;
 	}
+	else 
+	{ 
+		PlaySound(illegalSound); 
+	}
+
 	return valid;
 }
 

@@ -46,11 +46,12 @@ class Board
 	bool whiteTurn = true;
 
 	// Rendering
-	Texture2D texture;
+	Texture2D texture, pieces;
+	Sound moveSound, captureSound, illegalSound, gameEndSound;
 
 public:
 	Board();
-	~Board() {};
+	~Board();
 
 	bool MovePiece(char[3], char[3]);
 	bool MovePiece(bitboard,bitboard);
@@ -82,7 +83,5 @@ private:
 
 	int getRank(bitboard); // row
 	int getFile(bitboard); // column
-
-	Texture2D pieces = LoadTexture("pieces.png");
 };
 
