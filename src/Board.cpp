@@ -37,8 +37,10 @@ Board::Board()
 };
 
 /**************************************** Show Board ****************************************/
-void Board::Show(int SIZE)
+void Board::Show(int SIZE, bitboard grabPiece = NULL)
 {
+	hold = grabPiece;
+
 	// drawing
 	BeginDrawing();
 
@@ -53,19 +55,19 @@ void Board::Show(int SIZE)
 
 	// Draw pieces
 	int INCREMENT = (SIZE-50) / 8;
-	DrawPiece(whitePawns, 1000, 0, INCREMENT, "White Pawn");
-	DrawPiece(whiteRooks, 800, 0, INCREMENT, "White Rook");
-	DrawPiece(whiteBishops, 400, 0, INCREMENT, "White Bishop");
-	DrawPiece(whiteKnights, 600, 0, INCREMENT, "White Knight");
-	DrawPiece(whiteQueens, 200, 0, INCREMENT, "White Queen");
-	DrawPiece(whiteKing, 0, 0, INCREMENT, "White King");
+	DrawPieces(whitePawns, 1000, 0, INCREMENT, "White Pawn");
+	DrawPieces(whiteRooks, 800, 0, INCREMENT, "White Rook");
+	DrawPieces(whiteBishops, 400, 0, INCREMENT, "White Bishop");
+	DrawPieces(whiteKnights, 600, 0, INCREMENT, "White Knight");
+	DrawPieces(whiteQueens, 200, 0, INCREMENT, "White Queen");
+	DrawPieces(whiteKing, 0, 0, INCREMENT, "White King");
 
-	DrawPiece(blackPawns, 1000, 200, INCREMENT, "Black Pawn");
-	DrawPiece(blackRooks, 800, 200, INCREMENT, "Black Rook");
-	DrawPiece(blackBishops, 400, 200, INCREMENT, "Black Bishop");
-	DrawPiece(blackKnights, 600, 200, INCREMENT, "Black Knight");
-	DrawPiece(blackQueens, 200, 200, INCREMENT, "Black Queen");
-	DrawPiece(blackKing, 0, 200, INCREMENT, "Black King");
+	DrawPieces(blackPawns, 1000, 200, INCREMENT, "Black Pawn");
+	DrawPieces(blackRooks, 800, 200, INCREMENT, "Black Rook");
+	DrawPieces(blackBishops, 400, 200, INCREMENT, "Black Bishop");
+	DrawPieces(blackKnights, 600, 200, INCREMENT, "Black Knight");
+	DrawPieces(blackQueens, 200, 200, INCREMENT, "Black Queen");
+	DrawPieces(blackKing, 0, 200, INCREMENT, "Black King");
 
 	// Draw labels
 	for (int i = 0; i < 8; i++)
@@ -79,6 +81,9 @@ void Board::Show(int SIZE)
 		DrawText(letter, SIZE - 40, INCREMENT*(7-i)+10, 24, RAYWHITE);
 	}
 
+	// Draw grab piece
+	if (grabPiece) { DrawGrabPiece(INCREMENT); }
+
 	// end the frame and get ready for the next one  (display frame, poll input, etc...)
 	EndDrawing();
 }
@@ -89,10 +94,14 @@ void Board::Hide()
 	UnloadTexture(texture);
 }
 
-/**************************************** Draw Piece ****************************************/
-void Board::DrawPiece(bitboard board, int spriteX, int spriteY, int increment, std::string pieceName) {
-	Texture2D pieces = LoadTexture("pieces.png");
+/**************************************** Draw Pieces ****************************************/
+void Board::DrawPieces(bitboard board, int spriteX, int spriteY, int increment, std::string pieceName) {
 	int square = 0;
+	if (board & hold) { 
+		holdX = spriteX; holdY = spriteY; 
+		board = board ^ hold;
+	}
+	
 
 	while (board != 0) {
 		if (board % 2) {
@@ -104,12 +113,36 @@ void Board::DrawPiece(bitboard board, int spriteX, int spriteY, int increment, s
 			Rectangle position = { x * increment, (7 - y) * increment, increment, increment }; // use 7 because <8
 			Rectangle piece = { spriteX, spriteY, 200, 200 };
 			DrawTexturePro(pieces, piece, position, { 0, 0 }, 0, WHITE);
-			
+
 			//std::cout << pieceName << " on " << column << row << std::endl;
 		}
 		board /= 2;
 		square++;
 	}
+}
+
+/**************************************** Draw Pieces ****************************************/
+void Board::DrawGrabPiece(int increment) {
+	bitboard board = hold;
+	int square = 0;
+	while (board != 0) {
+		if (board % 2) {
+			// Calculate position
+			int y = square / 8;
+			int x = square % 8;
+			DrawRectangleLines(x * increment, (7 - y) * increment, increment, increment, RAYWHITE);
+			break;
+		}
+		board /= 2;
+		square++;
+	}
+
+	// Get mouse position
+	// Draw square at bitboard position
+	// Draw piece under mouse cursor (draw on midway point)
+	Rectangle piece = { holdX, holdY, 200, 200 };
+	Rectangle position = { GetMouseX() - increment/2, GetMouseY() - increment/2, increment, increment};
+	DrawTexturePro(pieces, piece, position, { 0, 0 }, 0, WHITE);
 }
 
 /******************************** Determine Target Square From Position ********************************/
@@ -150,6 +183,11 @@ bool Board::MovePiece(char p1[3], char p2[3]) {
 	bitboard startPos = PositionToBitboard(p1);
 	bitboard endPos = PositionToBitboard(p2);
 
+	return MovePiece(startPos, endPos);
+}
+
+/***************************************** Move Piece *****************************************/
+bool Board::MovePiece(bitboard startPos, bitboard endPos) {
 	// Make sure startPos is a valid piece
 	if (!(startPos & allPieces)) {
 		return false; // TODO: Validate in user input (don't allow user to select square without a piece!)
@@ -163,12 +201,12 @@ bool Board::MovePiece(char p1[3], char p2[3]) {
 
 	// Check for color collision
 	if ((startPos & allWhite && endPos & allWhite) || (startPos & allBlack && endPos & allBlack)) { return false; }
-	
+
 	// Check for lack of movement 
 	if (startPos == endPos) { return false; }
 
 	bool valid = false;
-	if (startPos & (whitePawns | blackPawns)) 
+	if (startPos & (whitePawns | blackPawns))
 	{
 		valid = MovePawn(startPos, endPos);
 	}
@@ -186,9 +224,6 @@ bool Board::MovePiece(char p1[3], char p2[3]) {
 	}
 	else if (startPos & (whiteKing | blackKing)) {
 		valid = MoveKing(startPos, endPos);
-	}
-	else {
-		std::cout << "[ERROR] Type at " << p1 << " not recognized." << std::endl;
 	}
 
 	if (valid)
@@ -520,4 +555,10 @@ int Board::getFile(bitboard piece)
 		if (files[i] & piece) { return i; }
 	}
 	return -1;
+}
+
+/**************************************** Check If Piece Is Valid ****************************************/
+bool Board::IsValidPiece(bitboard piece)
+{
+	return ((whiteTurn && (piece & allWhite)) || (!whiteTurn && (piece & allBlack)));
 }

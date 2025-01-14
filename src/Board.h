@@ -32,6 +32,10 @@ class Board
 	bitboard ranks[8]; // Horizontal rows 
 	bitboard files[8]; // Vertical columns
 
+	bitboard hold = 0;
+	int holdX = 0;
+	int holdY = 0;
+
 	bool whiteKingMoved = false;
 	bool blackKingMoved = false;
 	bool whiteARookMoved = false;
@@ -49,16 +53,18 @@ public:
 	~Board() {};
 
 	bool MovePiece(char[3], char[3]);
+	bool MovePiece(bitboard,bitboard);
+	bool IsValidPiece(bitboard);
 	
-	void Show(int);
+	void Show(int, bitboard);
 	void Hide();
 
 	// Testing Function
 	void RunTests();
 	void ShowBitboard(bitboard);
-
-private:
+	
 	bitboard PositionToBitboard(char[3]);
+private:
 	bitboard* GetIndividalBoard(bitboard);
 
 	Rectangle GetTarget(int, float);
@@ -71,9 +77,12 @@ private:
 	bool MoveQueen(bitboard, bitboard);
 
 	void UpdateBoard(bitboard, bitboard);
-	void DrawPiece(bitboard, int, int, int, std::string);
+	void DrawPieces(bitboard, int, int, int, std::string);
+	void DrawGrabPiece(int);
 
 	int getRank(bitboard); // row
 	int getFile(bitboard); // column
+
+	Texture2D pieces = LoadTexture("pieces.png");
 };
 

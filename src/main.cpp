@@ -37,44 +37,46 @@ int main()
 
 	// Initalize Game Board
 	Board board;
-	board.Show(SIZE);
-	// game loop
 
 	// Initalize User Input
 	UserInput input;
+	bool isDragging = false;
+	bitboard grab = NULL;
+
 	while (!WindowShouldClose())		// run the loop untill the user presses ESCAPE or presses the Close button on the window
 	{
-		mousePosition = GetMousePosition();
+		// char* moves = input.GetMoves();
+		// bool valid = board.MovePiece(moves, moves + 3);
+		// if (valid) 
+		// {
+		// 	board.Show(SIZE);
+		// }
+		// else
+		// {
+		// 	std::cout << "Move was not valid. Please try again. " << std::endl;
+		// }
 
-		if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow)
+		//Check for mouse click
+		if (!isDragging && IsMouseButtonDown(0))
 		{
-			if (CheckCollisionPointRec(mousePosition, { 0, 0, (float) SIZE, 20 }))
-			{
-				dragWindow = true;
-				panOffset = mousePosition;
-			}
+			isDragging = true;
+			char* position = input.GetPieceFromMouse(SIZE);
+			bitboard piece = board.PositionToBitboard(position);
+			if (input.Validate(position) && board.IsValidPiece(piece)) { grab = piece; }
+			delete[] position;
+			// Get piece position
+			// Check that piece is correct color (TODO)
+			// If true, Show with bitboard and set isDragging to true
 		}
-
-		if (dragWindow)
+		else if (isDragging && IsMouseButtonUp(0))
 		{
-			windowPosition.x += (mousePosition.x - panOffset.x);
-			windowPosition.y += (mousePosition.y - panOffset.y);
-
-			SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
-
-			if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) dragWindow = false;
+			isDragging = false;
+			char* position = input.GetPieceFromMouse(SIZE);
+			bitboard endPos = board.PositionToBitboard(position);
+			if (input.Validate(position)) { board.MovePiece(grab, endPos); }
+			grab = NULL;
 		}
-
-		char* moves = input.GetMoves();
-		bool valid = board.MovePiece(moves, moves + 3);
-		if (valid) 
-		{
-			board.Show(SIZE);
-		}
-		else
-		{
-			std::cout << "Move was not valid. Please try again. " << std::endl;
-		}
+		board.Show(SIZE, grab);
 	}
 
 	// cleanup
