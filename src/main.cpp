@@ -79,10 +79,6 @@ int main()
 		board.Show(SIZE, grab);
 	}
 
-	// cleanup
-	// unload our texture so it can be cleaned up
-	board.Hide();
-
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
 	return 0;

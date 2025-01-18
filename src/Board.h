@@ -58,7 +58,6 @@ public:
 	bool IsValidPiece(bitboard);
 	
 	void Show(int, bitboard);
-	void Hide();
 
 	// Testing Function
 	void RunTests();

@@ -67,7 +67,8 @@ void Board::Show(int SIZE, bitboard grabPiece = NULL)
 	Rectangle source = { 0, 0, texture.width, texture.height };
 	Rectangle target = { 0, 0, SIZE-50, SIZE - 50};
 	
-	DrawTexturePro(this->texture, source, target, {0,0}, 0, WHITE);
+	DrawTexturePro(this->texture, source, target, {0,0}, 0, WHITE); 
+	// todo: draw squares instead to incorporate custom themes
 
 	// Draw pieces
 	int INCREMENT = (SIZE-50) / 8;
@@ -102,12 +103,6 @@ void Board::Show(int SIZE, bitboard grabPiece = NULL)
 
 	// end the frame and get ready for the next one  (display frame, poll input, etc...)
 	EndDrawing();
-}
-
-/**************************************** Hide Board ****************************************/
-void Board::Hide()
-{
-	UnloadTexture(texture);
 }
 
 /**************************************** Draw Pieces ****************************************/
@@ -146,7 +141,8 @@ void Board::DrawGrabPiece(int increment) {
 			// Calculate position
 			int y = square / 8;
 			int x = square % 8;
-			DrawRectangleLines(x * increment, (7 - y) * increment, increment, increment, RAYWHITE);
+			Rectangle rect = { x * increment, (7 - y) * increment, increment, increment };
+			DrawRectangleLinesEx(rect, 5, RAYWHITE);
 			break;
 		}
 		board /= 2;
@@ -333,6 +329,7 @@ bool Board::MoveKing(bitboard startPos, bitboard endPos)
 	int file = getFile(startPos);
 	bitboard color = (startPos & allWhite) ? allWhite : allBlack;
 
+	
 	bitboard numbers[]{ 1, 7, 8, 9 };
 	for (bitboard number : numbers)
 	{
@@ -344,6 +341,8 @@ bool Board::MoveKing(bitboard startPos, bitboard endPos)
 	// Check for endpos
 	for (bitboard move : validMoves) {
 		if (move == endPos) {
+			if (color == allWhite) { whiteKingMoved = true; }
+			else { blackKingMoved = true; }
 			return true;
 		}
 	}
