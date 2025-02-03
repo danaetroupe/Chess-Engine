@@ -338,6 +338,38 @@ bool Board::MoveKing(bitboard startPos, bitboard endPos)
 		if (!(startPos >> number & color)) { validMoves.push_back(startPos >> number); }
 	}
 
+	if ((allWhite & startPos) && !whiteKingMoved) 
+	{
+		if (endPos == startPos >> 2 && !whiteARookMoved) 
+		{
+			if (!(startPos >> 1 & allPieces))
+			{
+				MovePiece(1, 8); // Move A Rook
+				return true;
+			}
+		}
+		if (endPos == startPos << 2 && !whiteHRookMoved)
+		{
+			if (!(startPos << 1 & allPieces))
+			{
+				MovePiece(128, 32); // Move H Rook
+				return true;
+			}
+		}
+	}
+		
+	if ((allBlack & startPos) && !blackKingMoved) 
+	{
+		if (endPos == startPos >> 2 && !blackARookMoved)
+		{
+			return MovePiece(72057594037927936, 576460752303423488); // Move A Rook
+		}
+		if (endPos == startPos << 2 && !blackHRookMoved)
+		{
+			return MovePiece(9223372036854775808, 2305843009213693952); // Move H Rook
+		}
+	}
+
 	// Check for endpos
 	for (bitboard move : validMoves) {
 		if (move == endPos) {
@@ -432,11 +464,11 @@ bool Board::MoveRook(bitboard startPos, bitboard endPos)
 	if (startRank == endRank && startFile != endFile) // A-H
 	{
 		int diff = abs(startFile - endFile);
-		int fileIncrement = (startFile - endFile) / abs(startFile - endFile);
+		int fileIncrement = (endFile - startFile) / abs(startFile - endFile);
 
 		for (int i = 1; i < diff; i++)
 		{
-			char position[]{ 'A' + startFile + (i * fileIncrement), '1' + endRank};
+			char position[]{ 'A' + startFile + (i * fileIncrement), '1' + endRank, '\0'};
 			if (PositionToBitboard(position) & allPieces) { return false; }
 		}
 		return true;
@@ -444,11 +476,11 @@ bool Board::MoveRook(bitboard startPos, bitboard endPos)
 	else if (startFile == endFile && startRank != endRank) // 1-8
 	{
 		int diff = abs(startRank - endRank);
-		int rankIncrement = (startRank - endRank) / abs(startRank - endRank);
+		int rankIncrement = (endRank - startRank) / abs(startRank - endRank);
 
 		for (int i = 1; i < diff; i++)
 		{
-			char position[]{ 'A' + endFile, '1' + startRank + (i*rankIncrement)};
+			char position[]{ 'A' + endFile, '1' + startRank + (i*rankIncrement), '\0' };
 			if (PositionToBitboard(position) & allPieces) { return false; }
 		}
 		return true;
