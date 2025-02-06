@@ -321,7 +321,7 @@ bool Board::MovePawn(bitboard start, bitboard end) {
 	return false;
 }
 
-/***************************************** Move Knight *****************************************/
+/***************************************** Move King *****************************************/
 bool Board::MoveKing(bitboard startPos, bitboard endPos)
 {
 	std::vector<bitboard> validMoves;
