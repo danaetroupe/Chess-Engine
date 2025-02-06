@@ -243,7 +243,7 @@ bool Board::MovePiece(bitboard startPos, bitboard endPos) {
 		if (endPos & allPieces) { PlaySound(captureSound); }
 		else { PlaySound(moveSound); }
 		UpdateBoard(startPos, endPos);
-		whiteTurn = !whiteTurn;
+		whiteTurn = (endPos & allBlack);
 	}
 	else 
 	{ 
