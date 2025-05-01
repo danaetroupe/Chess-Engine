@@ -86,6 +86,8 @@ void Board::Show(int SIZE, bitboard grabPiece = NULL)
 	DrawPieces(blackQueens, 200, 200, INCREMENT, "Black Queen");
 	DrawPieces(blackKing, 0, 200, INCREMENT, "Black King");
 
+	DrawGameStateIndicators(INCREMENT);
+
 	// Draw labels
 	for (int i = 0; i < 8; i++)
 	{
@@ -238,6 +240,8 @@ bool Board::MovePiece(bitboard startPos, bitboard endPos) {
 		valid = MoveKing(startPos, endPos);
 	}
 
+	valid = !WouldLeaveKingInCheck(startPos, endPos);
+
 	if (valid)
 	{
 		if (endPos & allPieces) { PlaySound(captureSound); }
@@ -250,17 +254,37 @@ bool Board::MovePiece(bitboard startPos, bitboard endPos) {
 		PlaySound(illegalSound); 
 	}
 
+	if (IsKingInCheck())
+	{
+		if (IsCheckmate())
+		{
+			PlaySound(gameEndSound);
+		}
+		else
+		{
+			PlaySound(illegalSound);
+		}
+	}
+	else
+	{
+		if (IsStalemate())
+		{
+			PlaySound(gameEndSound);
+		}
+	}
+	
+
 	return valid;
 }
 
 /***************************************** Move Pawn *****************************************/
 bool Board::MovePawn(bitboard start, bitboard end) {
-	bool isWhite = start & allWhite;
-	bitboard startRow = (isWhite) ? 65280 : 71776119061217280;
-	bitboard endRow = (isWhite) ? 18374686479671623680 : 255;
+	bool whiteTurn = start & allWhite;
+	bitboard startRow = (whiteTurn) ? 65280 : 71776119061217280;
+	bitboard endRow = (whiteTurn) ? 18374686479671623680 : 255;
 	std::vector<bitboard> validMoves;
 
-	if (isWhite)
+	if (whiteTurn)
 	{
 		// Check for spaces ahead
 		if (!(start << 8 & allPieces))
@@ -305,7 +329,7 @@ bool Board::MovePawn(bitboard start, bitboard end) {
 			// Handle pawn promotion
 			if (end & endRow) 
 			{
-				if (isWhite) {
+				if (whiteTurn) {
 					whitePawns = whitePawns ^ start;
 					whiteQueens = whiteQueens ^ start;
 				}
@@ -615,4 +639,437 @@ int Board::getFile(bitboard piece)
 bool Board::IsValidPiece(bitboard piece)
 {
 	return ((whiteTurn && (piece & allWhite)) || (!whiteTurn && (piece & allBlack)));
+}
+
+/***************************** Check if a square is under attack by the opponent *****************************/
+bool Board::IsSquareUnderAttack(bitboard square) {
+	// We need to check if any opponent piece can move to this square
+	bitboard opponentPieces = whiteTurn ? allBlack : allWhite;
+
+	int targetRank = getRank(square);
+	int targetFile = getFile(square);
+
+	// Check for pawn attacks
+	if (whiteTurn) {
+		// Black pawns attack diagonally down
+		bitboard pawnAttackLeft = (square << 7) & blackPawns & ~files[7]; // prevent wrapping
+		bitboard pawnAttackRight = (square << 9) & blackPawns & ~files[0]; // prevent wrapping
+		if (pawnAttackLeft || pawnAttackRight) return true;
+	}
+	else {
+		// White pawns attack diagonally up
+		bitboard pawnAttackLeft = (square >> 9) & whitePawns & ~files[7]; // prevent wrapping
+		bitboard pawnAttackRight = (square >> 7) & whitePawns & ~files[0]; // prevent wrapping
+		if (pawnAttackLeft || pawnAttackRight) return true;
+	}
+
+	// Check for knight attacks
+	bitboard knights = whiteTurn ? blackKnights : whiteKnights;
+	int knightOffsets[8] = { 6, 10, 15, 17, -6, -10, -15, -17 };
+
+	for (int i = 0; i < 8; i++) {
+		int offset = knightOffsets[i];
+		bitboard knightPos;
+
+		if (offset > 0) {
+			knightPos = square >> offset;
+		}
+		else {
+			knightPos = square << (-offset);
+		}
+
+		// Check for edge wrapping
+		if ((offset == 6 || offset == -10) && (targetFile < 2)) continue;
+		if ((offset == 10 || offset == -6) && (targetFile > 5)) continue;
+		if ((offset == 15 || offset == -17) && (targetFile < 1)) continue;
+		if ((offset == 17 || offset == -15) && (targetFile > 6)) continue;
+
+		if (knightPos & knights) return true;
+	}
+
+	// Check for king attacks (needed to validate king moves)
+	bitboard king = whiteTurn ? blackKing : whiteKing;
+	int kingOffsets[8] = { 1, 7, 8, 9, -1, -7, -8, -9 };
+
+	for (int i = 0; i < 8; i++) {
+		int offset = kingOffsets[i];
+		bitboard kingPos;
+
+		if (offset > 0) {
+			kingPos = square >> offset;
+		}
+		else {
+			kingPos = square << (-offset);
+		}
+
+		// Check for edge wrapping
+		if ((offset == 1 || offset == 9 || offset == -7) && (targetFile == 0)) continue;
+		if ((offset == -1 || offset == -9 || offset == 7) && (targetFile == 7)) continue;
+
+		if (kingPos & king) return true;
+	}
+
+	// Check for straight-line attacks (rook, queen)
+	bitboard straightAttackers = whiteTurn ?  (blackRooks | blackQueens) : (whiteRooks | whiteQueens);
+
+	// Check horizontal
+	for (int f = targetFile + 1; f < 8; f++) {
+		char position[] = { 'A' + f, '1' + targetRank, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & straightAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	for (int f = targetFile - 1; f >= 0; f--) {
+		char position[] = { 'A' + f, '1' + targetRank, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & straightAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	// Check vertical
+	for (int r = targetRank + 1; r < 8; r++) {
+		char position[] = { 'A' + targetFile, '1' + r, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & straightAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	for (int r = targetRank - 1; r >= 0; r--) {
+		char position[] = { 'A' + targetFile, '1' + r, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & straightAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	// Check for diagonal attacks (bishop, queen)
+	bitboard diagonalAttackers = whiteTurn ? (blackBishops | blackQueens) : (whiteBishops | whiteQueens);
+
+	// Check upper-right diagonal
+	for (int i = 1; targetRank + i < 8 && targetFile + i < 8; i++) {
+		char position[] = { 'A' + targetFile + i, '1' + targetRank + i, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & diagonalAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	// Check upper-left diagonal
+	for (int i = 1; targetRank + i < 8 && targetFile - i >= 0; i++) {
+		char position[] = { 'A' + targetFile - i, '1' + targetRank + i, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & diagonalAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	// Check lower-right diagonal
+	for (int i = 1; targetRank - i >= 0 && targetFile + i < 8; i++) {
+		char position[] = { 'A' + targetFile + i, '1' + targetRank - i, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & diagonalAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	// Check lower-left diagonal
+	for (int i = 1; targetRank - i >= 0 && targetFile - i >= 0; i++) {
+		char position[] = { 'A' + targetFile - i, '1' + targetRank - i, '\0' };
+		bitboard pos = PositionToBitboard(position);
+
+		if (pos & diagonalAttackers) return true;
+		if (pos & allPieces) break; // Stop at the first piece
+	}
+
+	return false;
+}
+
+/***************************** Check if king is in check *****************************/
+bool Board::IsKingInCheck() {
+	bitboard kingPos = whiteTurn ? whiteKing : blackKing;
+	return IsSquareUnderAttack(kingPos);
+}
+
+// Temporarily make a move to test if it resolves check
+void Board::MakeTemporaryMove(bitboard startPos, bitboard endPos) {
+	// Store the piece at the destination (if any) to restore later
+	bitboard capturedPiece = endPos & allPieces;
+
+	// Remove captured piece if any
+	if (capturedPiece) {
+		bitboard* oppBoard = GetIndividalBoard(capturedPiece);
+		if (oppBoard) {
+			*oppBoard = *oppBoard ^ capturedPiece;
+		}
+		if (capturedPiece & allWhite) {
+			allWhite = allWhite ^ capturedPiece;
+		}
+		else {
+			allBlack = allBlack ^ capturedPiece;
+		}
+	}
+
+	// Move the piece
+	bitboard* board = GetIndividalBoard(startPos);
+	if (board) {
+		*board = *board ^ startPos ^ endPos;
+	}
+
+	if (startPos & allWhite) {
+		allWhite = allWhite ^ startPos ^ endPos;
+	}
+	else {
+		allBlack = allBlack ^ startPos ^ endPos;
+	}
+
+	// Update the combined pieces
+	allPieces = allWhite | allBlack;
+}
+
+// Restore the board after a temporary move
+void Board::UndoTemporaryMove(bitboard startPos, bitboard endPos, bitboard capturedPiece, bitboard* capturedBoard) {
+	// Move the piece back
+	bitboard* board = GetIndividalBoard(endPos);
+	if (board) {
+		*board = *board ^ endPos ^ startPos;
+	}
+
+	if (endPos & allWhite) {
+		allWhite = allWhite ^ endPos ^ startPos;
+	}
+	else {
+		allBlack = allBlack ^ endPos ^ startPos;
+	}
+
+	// Restore captured piece if any
+	if (capturedPiece) {
+		*capturedBoard = *capturedBoard ^ endPos;
+		if (whiteTurn) {
+			allBlack = allBlack ^ endPos;
+		}
+		else
+		{
+			allWhite = allWhite ^ endPos;
+		}
+	}
+
+	// Update the combined pieces
+	allPieces = allWhite | allBlack;
+}
+
+// Check if a move would leave king in check
+bool Board::WouldLeaveKingInCheck(bitboard startPos, bitboard endPos) {
+	// Store the original state
+	bitboard capturedPiece = endPos & allPieces;
+	bitboard* board = GetIndividalBoard(capturedPiece);
+
+	// Make the temporary move
+	MakeTemporaryMove(startPos, endPos);
+
+	// Check if the king is in check after the move
+	bool kingInCheck = IsKingInCheck();
+
+	// Restore the original state
+	UndoTemporaryMove(startPos, endPos, capturedPiece, board);
+
+	return kingInCheck;
+}
+
+// Check for checkmate
+bool Board::IsCheckmate() {
+	bitboard playerPieces = whiteTurn ? allWhite : allBlack;
+
+	// First, check if the king is in check
+	if (!IsKingInCheck()) {
+		return false; // Not in check, so not checkmate
+	}
+
+	// Try all possible moves for each piece
+	for (int i = 0; i < 64; i++) {
+		bitboard startPos = (bitboard)1 << i;
+
+		// Skip if not one of player's pieces
+		if (!(startPos & playerPieces)) {
+			continue;
+		}
+
+		// Try all possible destinations
+		for (int j = 0; j < 64; j++) {
+			bitboard endPos = (bitboard)1 << j;
+
+			// Skip if same position
+			if (startPos == endPos) {
+				continue;
+			}
+
+			// Skip if destination has player's own piece
+			if ((whiteTurn && (endPos & allWhite)) || (!whiteTurn && (endPos & allBlack))) {
+				continue;
+			}
+
+			// Check if move is valid (according to piece movement rules)
+			bool validMove = false;
+
+			if (startPos & (whitePawns | blackPawns)) {
+				validMove = MovePawn(startPos, endPos);
+			}
+			else if (startPos & (whiteRooks | blackRooks)) {
+				validMove = MoveRook(startPos, endPos);
+			}
+			else if (startPos & (whiteBishops | blackBishops)) {
+				validMove = MoveBishop(startPos, endPos);
+			}
+			else if (startPos & (whiteKnights | blackKnights)) {
+				validMove = MoveKnight(startPos, endPos);
+			}
+			else if (startPos & (whiteQueens | blackQueens)) {
+				validMove = MoveQueen(startPos, endPos);
+			}
+			else if (startPos & (whiteKing | blackKing)) {
+				validMove = MoveKing(startPos, endPos);
+			}
+
+			if (validMove) {
+				// Check if this move would take king out of check
+				if (!WouldLeaveKingInCheck(startPos, endPos)) {
+					return false; // Found at least one legal move, not checkmate
+				}
+			}
+		}
+	}
+
+	// If we've tried all moves and none resolves the check, it's checkmate
+	if (whiteTurn) {
+		whiteInCheckmate = true;
+	}
+	else
+	{
+		blackInCheckmate = true;
+	}
+	return true;
+}
+
+// Check for stalemate - similar to checkmate but when king is NOT in check
+bool Board::IsStalemate() {
+	bitboard playerPieces = whiteTurn ? allWhite : allBlack;
+
+	// If the king is in check, it's not stalemate
+	if (IsKingInCheck()) {
+		return false;
+	}
+
+	// Try all possible moves for each piece
+	for (int i = 0; i < 64; i++) {
+		bitboard startPos = (bitboard)1 << i;
+
+		// Skip if not one of player's pieces
+		if (!(startPos & playerPieces)) {
+			continue;
+		}
+
+		// Try all possible destinations
+		for (int j = 0; j < 64; j++) {
+			bitboard endPos = (bitboard)1 << j;
+
+			// Skip if same position
+			if (startPos == endPos) {
+				continue;
+			}
+
+			// Skip if destination has player's own piece
+			if ((whiteTurn && (endPos & allWhite)) || (!whiteTurn && (endPos & allBlack))) {
+				continue;
+			}
+
+			// Check if move is valid (according to piece movement rules)
+			bool validMove = false;
+
+			if (startPos & (whitePawns | blackPawns)) {
+				validMove = MovePawn(startPos, endPos);
+			}
+			else if (startPos & (whiteRooks | blackRooks)) {
+				validMove = MoveRook(startPos, endPos);
+			}
+			else if (startPos & (whiteBishops | blackBishops)) {
+				validMove = MoveBishop(startPos, endPos);
+			}
+			else if (startPos & (whiteKnights | blackKnights)) {
+				validMove = MoveKnight(startPos, endPos);
+			}
+			else if (startPos & (whiteQueens | blackQueens)) {
+				validMove = MoveQueen(startPos, endPos);
+			}
+			else if (startPos & (whiteKing | blackKing)) {
+				validMove = MoveKing(startPos, endPos);
+			}
+
+			if (validMove) {
+				// Check if this move would not put king in check
+				if (!WouldLeaveKingInCheck(startPos, endPos)) {
+					return false; // Found at least one legal move, not stalemate
+				}
+			}
+		}
+	}
+
+	// If we've tried all moves and none is legal, it's stalemate
+	isStalemate = true;
+	return true;
+}
+
+// Draw game state indicators (check, checkmate, stalemate)
+void Board::DrawGameStateIndicators(int INCREMENT) {
+	if (isStalemate) {
+		// Draw stalemate indicators for both kings
+		// White king
+		int whiteRank = getRank(whiteKing);
+		int whiteFile = getFile(whiteKing);
+		Vector2 whiteCirclePos = {
+			whiteFile * INCREMENT + INCREMENT - 10,
+			(7 - whiteRank) * INCREMENT + 10
+		};
+		DrawCircle(whiteCirclePos.x, whiteCirclePos.y, 12, DARKGRAY);
+		DrawText("1/2", whiteCirclePos.x - 8, whiteCirclePos.y - 6, 12, WHITE);
+
+		// Black king
+		int blackRank = getRank(blackKing);
+		int blackFile = getFile(blackKing);
+		Vector2 blackCirclePos = {
+			blackFile * INCREMENT + INCREMENT - 10,
+			(7 - blackRank) * INCREMENT + 10
+		};
+		DrawCircle(blackCirclePos.x, blackCirclePos.y, 12, WHITE);
+		DrawText("1/2", blackCirclePos.x - 8, blackCirclePos.y - 6, 12, BLACK);
+
+		return; // Don't draw other indicators in stalemate
+	}
+
+	// Check for checkmate and check
+	if (whiteInCheckmate) {
+		int rank = getRank(whiteKing);
+		int file = getFile(whiteKing);
+
+		DrawCircle((file + 1) * INCREMENT, (7 - rank) * INCREMENT, INCREMENT / 4, Color{ 80, 80, 80, 200 });
+		DrawText("#", (file + 1) * INCREMENT - INCREMENT / 6, (7 - rank) * INCREMENT - INCREMENT / 6, INCREMENT / 3, WHITE);
+	}
+
+	if (blackInCheckmate) {
+		int rank = getRank(blackKing);
+		int file = getFile(blackKing);
+
+		// Draw a dark square with '#' for checkmate
+		Rectangle rect = {
+			file * INCREMENT,
+			(7 - rank) * INCREMENT,
+			INCREMENT,
+			INCREMENT
+		};
+		DrawCircle((file + 1) * INCREMENT, (7 - rank) * INCREMENT, INCREMENT / 4, Color{ 80, 80, 80, 200 });
+		DrawText("#", (file + 1) * INCREMENT - INCREMENT / 6, (7 - rank) * INCREMENT - INCREMENT / 6, INCREMENT / 3, WHITE);
+		
+	}
 }

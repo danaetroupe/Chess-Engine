@@ -43,6 +43,12 @@ class Board
 	bool whiteHRookMoved = false;
 	bool blackHRookMoved = false;
 
+	bool whiteInCheck = false;
+	bool blackInCheck = false;
+	bool whiteInCheckmate = false;
+	bool blackInCheckmate = false;
+	bool isStalemate = false;
+
 	bool whiteTurn = true;
 
 	// Rendering
@@ -64,6 +70,8 @@ public:
 	void ShowBitboard(bitboard);
 	
 	bitboard PositionToBitboard(char[3]);
+
+	bool IsGameOver() { return whiteInCheckmate || blackInCheckmate || isStalemate; }
 private:
 	bitboard* GetIndividalBoard(bitboard);
 
@@ -79,8 +87,17 @@ private:
 	void UpdateBoard(bitboard, bitboard);
 	void DrawPieces(bitboard, int, int, int, std::string);
 	void DrawGrabPiece(int);
+	void DrawGameStateIndicators(int INCREMENT);
 
 	int getRank(bitboard); // row
 	int getFile(bitboard); // column
+
+	bool IsKingInCheck(); // Check if a king is under attack
+	bool WouldLeaveKingInCheck(bitboard startPos, bitboard endPos); 
+	bool IsSquareUnderAttack(bitboard square);
+	bool IsCheckmate();
+	void MakeTemporaryMove(bitboard startPos, bitboard endPos); // Temporarily make a move to test if it resolves check
+	void UndoTemporaryMove(bitboard startPos, bitboard endPos, bitboard capturedPiece, bitboard* capturedBoard);
+	bool IsStalemate();
 };
 
